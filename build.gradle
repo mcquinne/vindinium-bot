@@ -18,7 +18,7 @@ dependencies {
     compile 'org.codehaus.groovy:groovy-all'
     compile 'org.springframework.boot:spring-boot-starter-integration'
 
-    testCompile 'org.spockframework:spock-core:0.7-groovy-2.0'
+    testCompile 'org.spockframework:spock-spring'
     testCompile 'org.springframework.boot:spring-boot-starter-test'
 }
 
