@@ -1,21 +1,19 @@
 package com.mcquinne.vindinium
 
-import groovy.util.logging.Slf4j
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.context.annotation.ComponentScan
-import org.springframework.context.annotation.Configuration
+import org.springframework.messaging.MessageChannel
+import org.springframework.messaging.support.GenericMessage
 
-@Slf4j
 @ComponentScan
-@Configuration
 @EnableAutoConfiguration
 class Application {
 
     static main( args ) {
-        def ctx = SpringApplication.run(Application, args)
-        log.info 'hello, world'
-        ctx.close()
+        def ctx = SpringApplication.run('classpath:main-context.xml')
+        def sendMoveChannel = ctx.getBean('startTraining', MessageChannel)
+        sendMoveChannel.send(new GenericMessage([:]))
     }
 
 }

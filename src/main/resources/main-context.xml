@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:int="http://www.springframework.org/schema/integration"
+  xmlns:int-http="http://www.springframework.org/schema/integration/http"
+  xmlns:task="http://www.springframework.org/schema/task"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/integration
+    http://www.springframework.org/schema/integration/spring-integration.xsd
+    http://www.springframework.org/schema/integration/http
+    http://www.springframework.org/schema/integration/http/spring-integration-http.xsd
+    http://www.springframework.org/schema/task
+    http://www.springframework.org/schema/task/spring-task.xsd">
+
+    <bean class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer"/>
+    <int:poller default="true" fixed-rate="1"/>
+    <task:executor id="executor"/>
+
+    <int:channel id="sendMove">
+        <int:rendezvous-queue/>
+    </int:channel>
+
+    <int:channel id="startTraining"/>
+    <int:channel id="startArena"/>
+
+    <int:header-enricher input-channel="startTraining" output-channel="sendMove">
+        <int:header name="playUrl" value="http://vindinium.org/api/training"/>
+    </int:header-enricher>
+
+    <int:header-enricher input-channel="startArena" output-channel="sendMove">
+        <int:header name="playUrl" value="http://vindinium.org/api/arena"/>
+    </int:header-enricher>
+
+    <int:chain id="sendMoveChain" input-channel="sendMove" output-channel="newState">
+        <int:transformer>
+            <bean class="com.mcquinne.vindinium.util.CommandTransformer">
+                <property name="key" value="${VINDINIUM_KEY}"/>
+            </bean>
+        </int:transformer>
+
+        <int-http:outbound-gateway expected-response-type="java.lang.String" url-expression="headers.get('playUrl')"/>
+
+        <int:json-to-object-transformer type="com.mcquinne.vindinium.domain.State"/>
+
+        <int:filter expression="payload?.game?.finished == false" discard-channel="finishedLog"/>
+
+        <int:header-enricher>
+            <int:header name="playUrl" expression="payload.playUrl" overwrite="true"/>
+        </int:header-enricher>
+    </int:chain>
+
+    <int:publish-subscribe-channel id="newState" task-executor="executor"/>
+
+    <int:service-activator id="randoBot" input-channel="newState" output-channel="sendMove">
+        <bean class="com.mcquinne.vindinium.ai.RandoBot"/>
+    </int:service-activator>
+
+    <int:bridge input-channel="newState" output-channel="infoLog"/>
+
+    <int:channel id="infoLog"/>
+    <int:logging-channel-adapter level="INFO" channel="infoLog"/>
+
+    <int:channel id="finishedLog"/>
+    <int:logging-channel-adapter level="INFO" channel="finishedLog"
+      expression="'Game finished! Watch if here: ' + payload.viewUrl"/>
+
+</beans>

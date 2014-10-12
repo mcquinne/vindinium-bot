@@ -17,6 +17,7 @@ repositories {
 dependencies {
     compile 'org.codehaus.groovy:groovy-all'
     compile 'org.springframework.boot:spring-boot-starter-integration'
+    compile 'com.fasterxml.jackson.core:jackson-databind'
 
     testCompile 'org.spockframework:spock-spring'
     testCompile 'org.springframework.boot:spring-boot-starter-test'
